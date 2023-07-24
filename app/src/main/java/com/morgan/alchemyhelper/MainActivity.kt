@@ -32,21 +32,10 @@ class MainActivity : ComponentActivity() {
     lateinit var db:RoomDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database").build()
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database").allowMainThreadQueries().build()
         // todo: Should really be replaced by Room (ORM) and file reading
         (db as AppDatabase).IngredientDao().insertAll(Ingredient("Tea Leaves", "Leaves of tea..."))
 
-//        IngredientRegistry.addAllToRegistry(listOf(
-//            Ingredient("Tea Leaves", "Leaves of tea..."), Ingredient("Mushrooms"),
-////            Ingredient("Daffodil"), Ingredient("Cotton"),
-////            Ingredient("White cap"), Ingredient("Honey"),
-////            Ingredient("Beer"), Ingredient("Wine"),
-////            Ingredient("Blood"), Ingredient("Water"),
-////            Ingredient("Animal heart"), Ingredient("Spider legs"),
-////            Ingredient("Spider eyes"), Ingredient("Spider eggs"),
-////            Ingredient("Fly wings"), Ingredient("Egg"),
-////            Ingredient("Fly wings"), Ingredient("Egg"),
-//        ))
         setContent {
             AlchemyHelperTheme {
                 val navController = rememberNavController()
