@@ -25,7 +25,10 @@ import androidx.navigation.navArgument
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.morgan.alchemyhelper.persistence.AppDatabase
+import com.morgan.alchemyhelper.persistence.Effect
 import com.morgan.alchemyhelper.persistence.Ingredient
+import com.morgan.alchemyhelper.persistence.IngredientAndEffect
+import com.morgan.alchemyhelper.persistence.IngredientWithEffects
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,6 +38,8 @@ class MainActivity : ComponentActivity() {
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database").allowMainThreadQueries().build()
         // todo: Should really be replaced by Room (ORM) and file reading
         (db as AppDatabase).IngredientDao().insertAll(Ingredient("Tea Leaves", "Leaves of tea..."))
+        (db as AppDatabase).EffectDao().insertAll(Effect("Paralysis", "Enemy movements restricted"))
+        (db as AppDatabase).IngredientWithEffectsDao().insert(IngredientAndEffect(1,1))
 
         setContent {
             AlchemyHelperTheme {
@@ -81,8 +86,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun ItemDetailScreen(ingredientString: String) {
-        val ingredient: Ingredient = (db as AppDatabase).IngredientDao().findByName(ingredientString)
-        Text(text = "$ingredient Screen Here")
+        val ingredientWithEffects: IngredientWithEffects = (db as AppDatabase).IngredientWithEffectsDao().findByIngredientName(ingredientString)
+        Text(text = "${ingredientWithEffects.ingredient.name} Screen Here")
+        Text(text = "${ingredientWithEffects.effect }}")
     }
 }
 
