@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -23,31 +22,37 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.navigation.navOptions
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.morgan.alchemyhelper.persistence.AppDatabase
+import com.morgan.alchemyhelper.persistence.Ingredient
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
 
 class MainActivity : ComponentActivity() {
-
+    lateinit var db:RoomDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database").build()
         // todo: Should really be replaced by Room (ORM) and file reading
-        IngredientRegistry.addAllToRegistry(listOf(
-            Ingredient("Tea Leaves"), Ingredient("Mushrooms"),
-            Ingredient("Daffodil"), Ingredient("Cotton"),
-            Ingredient("White cap"), Ingredient("Honey"),
-            Ingredient("Beer"), Ingredient("Wine"),
-            Ingredient("Blood"), Ingredient("Water"),
-            Ingredient("Animal heart"), Ingredient("Spider legs"),
-            Ingredient("Spider eyes"), Ingredient("Spider eggs"),
-            Ingredient("Fly wings"), Ingredient("Egg"),
-            Ingredient("Fly wings"), Ingredient("Egg"),
-        ))
+        (db as AppDatabase).IngredientDao().insertAll(Ingredient("Tea Leaves", "Leaves of tea..."))
+
+//        IngredientRegistry.addAllToRegistry(listOf(
+//            Ingredient("Tea Leaves", "Leaves of tea..."), Ingredient("Mushrooms"),
+////            Ingredient("Daffodil"), Ingredient("Cotton"),
+////            Ingredient("White cap"), Ingredient("Honey"),
+////            Ingredient("Beer"), Ingredient("Wine"),
+////            Ingredient("Blood"), Ingredient("Water"),
+////            Ingredient("Animal heart"), Ingredient("Spider legs"),
+////            Ingredient("Spider eyes"), Ingredient("Spider eggs"),
+////            Ingredient("Fly wings"), Ingredient("Egg"),
+////            Ingredient("Fly wings"), Ingredient("Egg"),
+//        ))
         setContent {
             AlchemyHelperTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "ItemListScreen") {
                     composable("ItemListScreen") {
-                        ListWithHeader(ingredients = IngredientRegistry.getAll(), navController)
+                        ListWithHeader(ingredients = (db as AppDatabase).IngredientDao().getAll(), navController)
                     }
                     composable("ItemDetailScreen/{selectedItem}",
                         arguments = listOf(navArgument("selectedItem") {type= NavType.StringType})){
@@ -59,36 +64,36 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    fun ListWithHeader(ingredients: List<Ingredient>, navController: NavController) {
+        LazyColumn (modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            stickyHeader {
+                Text(text = "Ingredients")
+            }
+            itemsIndexed(ingredients) { index, item ->
+                IngredientRow(item, navController)
+            }
+        }
+    }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun ListWithHeader(ingredients: List<Ingredient>, navController: NavController) {
-    LazyColumn (modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        stickyHeader {
-            Text(text = "Ingredients")
+    @Composable
+    fun IngredientRow(ingredient: Ingredient, navController: NavController) {
+        Row(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable { navController.navigate("ItemDetailScreen/$ingredient")},
+            verticalAlignment = Alignment.CenterVertically) {
+            Text(text = ingredient.toString())
         }
-        itemsIndexed(ingredients) { index, item ->
-            IngredientRow(item, navController)
-        }
+    }
+
+    @Composable
+    fun ItemDetailScreen(ingredientString: String) {
+        val ingredient: Ingredient = (db as AppDatabase).IngredientDao().findByName(ingredientString)
+        Text(text = "$ingredient Screen Here")
     }
 }
 
-@Composable
-fun IngredientRow(ingredient: Ingredient, navController: NavController) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(16.dp)
-        .clickable { navController.navigate("ItemDetailScreen/$ingredient")},
-        verticalAlignment = Alignment.CenterVertically) {
-        Text(text = ingredient.toString())
-    }
-}
-
-@Composable
-fun ItemDetailScreen(ingredientString: String) {
-    val ingredient: Ingredient = IngredientRegistry.getFromRegistry(ingredientString)
-    Text(text = "$ingredient Screen Here")
-}
