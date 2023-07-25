@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 class Effect(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "description") val description: String) {
-    @PrimaryKey(autoGenerate = true) var effectId: Int? = null
+    @PrimaryKey(autoGenerate = true) var effectId: Long? = null
 
     override fun toString(): String {
         return name

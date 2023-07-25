@@ -1,10 +1,12 @@
 package com.morgan.alchemyhelper
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,36 +34,52 @@ import com.morgan.alchemyhelper.persistence.IngredientWithEffects
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
 
 class MainActivity : ComponentActivity() {
-    lateinit var db:RoomDatabase
+    private lateinit var db: RoomDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database").allowMainThreadQueries().build()
-        // todo: Should really be replaced by Room (ORM) and file reading
-        (db as AppDatabase).IngredientDao().insertAll(Ingredient("Tea Leaves", "Leaves of tea..."))
-        (db as AppDatabase).EffectDao().insertAll(Effect("Paralysis", "Enemy movements restricted"))
-        (db as AppDatabase).IngredientWithEffectsDao().insert(IngredientAndEffect(1,1))
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database")
+            .allowMainThreadQueries().build()
+        (db as AppDatabase).clearAllTables()
+        // todo: Should be replaced by file reading or populated default db
+
+
+        (db as AppDatabase).IngredientWithEffectsDao().insert(
+            IngredientAndEffect(
+                (db as AppDatabase).IngredientDao()
+                    .insert(Ingredient("Tea Leaves", "Leaves of tea...")),
+                (db as AppDatabase).EffectDao()
+                    .insert(Effect("Paralysis", "Enemy movements restricted"))
+            )
+        )
 
         setContent {
             AlchemyHelperTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "ItemListScreen") {
                     composable("ItemListScreen") {
-                        ListWithHeader(ingredients = (db as AppDatabase).IngredientDao().getAll(), navController)
+                        ListWithHeader(
+                            ingredients = (db as AppDatabase).IngredientDao().getAll(),
+                            navController
+                        )
                     }
                     composable("ItemDetailScreen/{selectedItem}",
-                        arguments = listOf(navArgument("selectedItem") {type= NavType.StringType})){
-                        backStackEntry ->
+                        arguments = listOf(navArgument("selectedItem") {
+                            type = NavType.StringType
+                        })
+                    ) { backStackEntry ->
                         val selectedItem = backStackEntry.arguments?.getString("selectedItem")
-                        selectedItem?.let { string: String -> ItemDetailScreen(string)}
+                        selectedItem?.let { string: String -> ItemDetailScreen(string) }
                     }
                 }
             }
         }
     }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun ListWithHeader(ingredients: List<Ingredient>, navController: NavController) {
-        LazyColumn (modifier = Modifier.fillMaxWidth(),
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(16.dp)
         ) {
             stickyHeader {
@@ -75,20 +93,26 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun IngredientRow(ingredient: Ingredient, navController: NavController) {
-        Row(modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clickable { navController.navigate("ItemDetailScreen/$ingredient")},
-            verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .clickable { navController.navigate("ItemDetailScreen/$ingredient") },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(text = ingredient.toString())
         }
     }
 
     @Composable
     fun ItemDetailScreen(ingredientString: String) {
-        val ingredientWithEffects: IngredientWithEffects = (db as AppDatabase).IngredientWithEffectsDao().findByIngredientName(ingredientString)
-        Text(text = "${ingredientWithEffects.ingredient.name} Screen Here")
-        Text(text = "${ingredientWithEffects.effect }}")
+        val ingredientWithEffects: IngredientWithEffects =
+            (db as AppDatabase).IngredientWithEffectsDao().findByIngredientName(ingredientString)
+        Column {
+            Text(text = "${ingredientWithEffects.ingredient.name} Screen Here")
+            Log.w("", ingredientWithEffects.effect.toString())
+            Text(text = "${ingredientWithEffects.effect}")
+        }
     }
 }
 

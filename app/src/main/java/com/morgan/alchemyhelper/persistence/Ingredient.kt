@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
 class Ingredient(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "description") val description: String) {
-    @PrimaryKey(autoGenerate = true) var ingredientId: Int? = null
+    @PrimaryKey(autoGenerate = true) var ingredientId: Long? = null
 
     override fun toString(): String {
         return name

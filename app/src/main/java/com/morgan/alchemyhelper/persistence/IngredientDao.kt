@@ -17,5 +17,8 @@ interface IngredientDao {
     fun findByName(name: String): Ingredient
 
     @Insert
+    fun insert(ingredient: Ingredient): Long
+
+    @Insert
     fun insertAll(vararg ingredients: Ingredient)
 }

@@ -17,5 +17,8 @@ interface EffectDao {
     fun findByName(name: String): Effect
 
     @Insert
+    fun insert(effect: Effect): Long
+
+    @Insert
     fun insertAll(vararg effects: Effect)
 }

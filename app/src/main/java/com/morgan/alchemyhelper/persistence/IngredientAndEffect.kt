@@ -4,4 +4,4 @@ import androidx.room.Entity
 
 
 @Entity(primaryKeys=["ingredientId","effectId"])
-data class IngredientAndEffect(val ingredientId: Int, val effectId: Int)
+data class IngredientAndEffect(val ingredientId: Long, val effectId: Long)
