@@ -31,10 +31,9 @@ import com.morgan.alchemyhelper.persistence.AppDatabase
 import com.morgan.alchemyhelper.persistence.Effect
 import com.morgan.alchemyhelper.persistence.EffectWithIngredients
 import com.morgan.alchemyhelper.persistence.Ingredient
-import com.morgan.alchemyhelper.persistence.IngredientAndEffect
 import com.morgan.alchemyhelper.persistence.IngredientWithEffects
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
-import java.io.FileReader
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var db: RoomDatabase
@@ -48,16 +47,6 @@ class MainActivity : ComponentActivity() {
         Log.d("MAIN", "Loading csv with id $csvId")
 
         CSVReader().readCSV(applicationContext.resources.openRawResource(csvId), (db as AppDatabase))
-
-//        // todo: Should be replaced by file reading or populated default db
-//        (db as AppDatabase).IngredientWithEffectsDao().insert(
-//            IngredientAndEffect(
-//                (db as AppDatabase).IngredientDao()
-//                    .insert(Ingredient("Tea Leaves", "Leaves of tea...")),
-//                (db as AppDatabase).EffectDao()
-//                    .insert(Effect("Paralysis", "Enemy movements restricted"))
-//            )
-//        )
 
         setContent {
             AlchemyHelperTheme {

@@ -14,7 +14,7 @@ interface EffectDao {
     fun findById(id: Int): Effect
 
     @Query("SELECT * FROM effect WHERE name=:name")
-    fun findByName(name: String): Effect
+    fun findByName(name: String): Effect?
 
     @Insert
     fun insert(effect: Effect): Long
