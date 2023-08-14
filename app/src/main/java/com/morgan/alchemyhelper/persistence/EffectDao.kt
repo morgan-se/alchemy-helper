@@ -7,7 +7,7 @@ import androidx.room.Query
 @Dao
 interface EffectDao {
 
-    @Query("SELECT * From effect")
+    @Query("SELECT * From effect ORDER BY name ASC")
     fun getAll(): List<Effect>
 
     @Query("SELECT * FROM effect WHERE effectId=:id")

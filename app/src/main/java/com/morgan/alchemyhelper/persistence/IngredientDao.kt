@@ -7,7 +7,7 @@ import androidx.room.Query
 @Dao
 interface IngredientDao {
 
-    @Query("SELECT * FROM ingredient")
+    @Query("SELECT * FROM ingredient ORDER BY name ASC")
     fun getAll() : List<Ingredient>
 
     @Query("SELECT * FROM ingredient WHERE ingredientId = :id")
