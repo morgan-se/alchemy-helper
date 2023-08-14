@@ -1,6 +1,7 @@
 package com.morgan.alchemyhelper
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -30,27 +31,22 @@ import com.morgan.alchemyhelper.persistence.AppDatabase
 import com.morgan.alchemyhelper.persistence.Effect
 import com.morgan.alchemyhelper.persistence.EffectWithIngredients
 import com.morgan.alchemyhelper.persistence.Ingredient
-import com.morgan.alchemyhelper.persistence.IngredientAndEffect
 import com.morgan.alchemyhelper.persistence.IngredientWithEffects
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var db: RoomDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d("MAIN", "Starting app...")
         super.onCreate(savedInstanceState)
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database")
             .allowMainThreadQueries().build()
         (db as AppDatabase).clearAllTables()
+        val csvId = R.raw.skyrim_alchemy;
+        Log.d("MAIN", "Loading csv with id $csvId")
 
-        // todo: Should be replaced by file reading or populated default db
-        (db as AppDatabase).IngredientWithEffectsDao().insert(
-            IngredientAndEffect(
-                (db as AppDatabase).IngredientDao()
-                    .insert(Ingredient("Tea Leaves", "Leaves of tea...")),
-                (db as AppDatabase).EffectDao()
-                    .insert(Effect("Paralysis", "Enemy movements restricted"))
-            )
-        )
+        CSVReader().readCSV(applicationContext.resources.openRawResource(csvId), (db as AppDatabase))
 
         setContent {
             AlchemyHelperTheme {

@@ -7,14 +7,14 @@ import androidx.room.Query
 @Dao
 interface IngredientDao {
 
-    @Query("SELECT * FROM ingredient")
+    @Query("SELECT * FROM ingredient ORDER BY name ASC")
     fun getAll() : List<Ingredient>
 
     @Query("SELECT * FROM ingredient WHERE ingredientId = :id")
     fun findById(id: Int): Ingredient
 
     @Query("SELECT * FROM ingredient WHERE name LIKE :name")
-    fun findByName(name: String): Ingredient
+    fun findByName(name: String): Ingredient?
 
     @Insert
     fun insert(ingredient: Ingredient): Long
