@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -53,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -135,7 +137,7 @@ class MainActivity : ComponentActivity() {
                         selectedEffect?.let { string: String -> EffectDetailScreen(string) }
                     }
                     composable("FindPotions") {
-                        IngredientSelection(navController = navController)
+                        IngredientSelectionHelper(navController = navController)
                     }
                     composable(
                         "PossiblePotions/{ingredients}",
@@ -397,6 +399,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun IngredientSelectionHelper(navController: NavController) {
+        val configuration = LocalConfiguration.current
+        // When orientation is Landscape
+        when (configuration.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> {
+                IngredientSelectionLandscape(navController = navController)
+            }
+
+            // Other wise
+            else -> {
+                IngredientSelection(navController = navController)
+            }
+        }
+    }
+
     @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun IngredientSelection(navController: NavController) {
@@ -451,6 +469,62 @@ class MainActivity : ComponentActivity() {
                 Text(text = resources.getString(R.string.find_potions))
             }
         }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun IngredientSelectionLandscape(navController: NavController) {
+        val ingredients: List<Ingredient> = db.IngredientDao().getAll()
+        val searchString = remember {
+            mutableStateOf("")
+        }
+        val selectedIngredients = remember { mutableStateListOf<Ingredient>() }
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                modifier = Modifier.fillMaxWidth(),columns = GridCells.Fixed(count = 2),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                itemsIndexed(ingredients.filter {
+                    searchString.value == "" || it.name.lowercase()
+                        .contains(searchString.value.lowercase()) || LevenshteinDistance().findSimilarity(
+                        searchString.value.lowercase(),
+                        it.name.lowercase()
+                    ) > 0.5
+                }) { index, item ->
+                    SelectableIngredientRow(item, selectedIngredients = selectedIngredients)
+                }
+            }
+            Button(
+                onClick = {
+                    if (selectedIngredients.isEmpty()) {
+                        Toast.makeText(
+                            applicationContext,
+                            resources.getString(R.string.ingredient_selection_missing),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        navController.navigate(
+                            "PossiblePotions/${
+                                selectedIngredients.map { it.ingredientId }.joinToString(",")
+                            }"
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .padding(0.dp, 0.dp, 8.dp, 6.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Text(text = resources.getString(R.string.find_potions))
+            }
+            Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp).align(Alignment.TopEnd)) {
+                TextField(value = searchString.value,
+                    onValueChange = { newValue: String -> searchString.value = newValue },
+                    label = { Text(text = resources.getString(R.string.search_ingredients)) },
+                modifier = Modifier.width(200.dp))
+            }
+        }
+
     }
 
     @OptIn(ExperimentalFoundationApi::class)
