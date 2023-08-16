@@ -23,4 +23,5 @@
     <string name="capture_another_image">Capture Another Image From Camera</string>
     <string name="change_to_maori">Change to Māori</string>
     <string name="change_to_english">Change to English</string>
+    <string name="search_ingredients">Search Ingredients</string>
 </resources>

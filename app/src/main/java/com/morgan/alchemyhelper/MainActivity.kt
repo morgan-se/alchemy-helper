@@ -7,11 +7,15 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.view.OrientationEventListener
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -33,15 +37,22 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +79,8 @@ import com.morgan.alchemyhelper.persistence.EffectWithIngredients
 import com.morgan.alchemyhelper.persistence.Ingredient
 import com.morgan.alchemyhelper.persistence.IngredientWithEffects
 import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -79,8 +92,6 @@ import java.util.Objects
 class MainActivity : ComponentActivity() {
     private lateinit var db: AppDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
-
-
         Log.d("MAIN", "Starting app...")
         super.onCreate(savedInstanceState)
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database")
@@ -143,15 +154,65 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+
     @Composable
     fun HomeScreen(navController: NavController) {
+        // animation is a little more complex than need be
+        var rotationAngle by remember { mutableStateOf(0f) }
+        var filteredAngle by remember { mutableStateOf(0f) }
+        var currentOrientation by remember { mutableStateOf(0) }
+
+        val filterFactor = 0.3f // Adjust this value to control the filtering strength
+
+        val coroutineScope = rememberCoroutineScope()
+
+        DisposableEffect(applicationContext) {
+            val orientationEventListener = object : OrientationEventListener(applicationContext) {
+                override fun onOrientationChanged(orientation: Int) {
+                    Log.d("ORIENTATION", orientation.toString())
+                    currentOrientation = orientation
+                    val newAngle = orientation.toFloat()
+                    filteredAngle = newAngle * filterFactor + filteredAngle * (1 - filterFactor)
+                }
+            }
+            orientationEventListener.enable()
+
+            val updateInterval = 32L // Update every 32 milliseconds (approximately 30 FPS)
+            coroutineScope.launch {
+                while (true) {
+                    val orientation = currentOrientation
+                    val newRotationAngle: Float = if (orientation>180) {
+                        (currentOrientation-360).toFloat()
+                    } else {
+                        orientation.toFloat() // Update the rotation angle
+                    }
+                    rotationAngle = newRotationAngle
+                    delay(updateInterval)
+                }
+            }
+
+            onDispose {
+                orientationEventListener.disable()
+            }
+        }
+
+        val animatedRotation by animateFloatAsState(
+            targetValue = rotationAngle,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessLow)
+        )
+
+
         val svgId = R.drawable.chem
         Column(
             horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
                 .fillMaxWidth()
                 .padding(0.dp, 16.dp, 0.dp, 0.dp)
         ) {
-            Image(painterResource(id = svgId), "simple logo")
+            Image(
+                painterResource(id = svgId),
+                "simple logo",
+                modifier = Modifier.rotate(360-animatedRotation)
+            )
             Text(
                 text = resources.getString(R.string.app_name),
                 textAlign = TextAlign.Center,
@@ -336,10 +397,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
+    @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun IngredientSelection(navController: NavController) {
         val ingredients: List<Ingredient> = db.IngredientDao().getAll()
+        val searchString = remember {
+            mutableStateOf("")
+        }
+
         val selectedIngredients = remember { mutableStateListOf<Ingredient>() }
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
@@ -348,11 +413,18 @@ class MainActivity : ComponentActivity() {
             ) {
                 stickyHeader {
                     Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
-                        Text(text = resources.getString(R.string.ingredients), fontSize = 20.sp)
+                        TextField(value = searchString.value,
+                            onValueChange = { newValue: String -> searchString.value = newValue },
+                            label = { Text(text = resources.getString(R.string.search_ingredients)) })
                     }
                 }
-                // possible todo: add search field
-                itemsIndexed(ingredients) { index, item ->
+                itemsIndexed(ingredients.filter {
+                    searchString.value == "" || it.name.lowercase()
+                        .contains(searchString.value.lowercase()) || LevenshteinDistance().findSimilarity(
+                        searchString.value.lowercase(),
+                        it.name.lowercase()
+                    ) > 0.5
+                }) { index, item ->
                     SelectableIngredientRow(item, selectedIngredients = selectedIngredients)
                 }
             }
@@ -538,7 +610,8 @@ class MainActivity : ComponentActivity() {
                             for (imageUri in imageUris) {
                                 val recognizer =
                                     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                                val image: InputImage = InputImage.fromFilePath(context, imageUri)
+                                val image: InputImage =
+                                    InputImage.fromFilePath(context, imageUri)
                                 recognizer.process(image).addOnSuccessListener { text ->
                                     val distanceCalc = LevenshteinDistance()
                                     for (block in text.textBlocks) {
@@ -604,9 +677,9 @@ class MainActivity : ComponentActivity() {
                     }
                 }) {
                     if (imageUris.isNotEmpty()) {
-                        Text(text = resources.getString(R.string.capture_image))
-                    } else {
                         Text(text = resources.getString(R.string.capture_another_image))
+                    } else {
+                        Text(text = resources.getString(R.string.capture_image))
 
                     }
                 }
