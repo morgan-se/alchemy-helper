@@ -5,20 +5,27 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,7 +33,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import com.morgan.alchemyhelper.persistence.AppDatabase
 import com.morgan.alchemyhelper.persistence.Effect
 import com.morgan.alchemyhelper.persistence.EffectWithIngredients
@@ -36,17 +42,17 @@ import com.morgan.alchemyhelper.ui.theme.AlchemyHelperTheme
 
 
 class MainActivity : ComponentActivity() {
-    private lateinit var db: RoomDatabase
+    private lateinit var db: AppDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d("MAIN", "Starting app...")
         super.onCreate(savedInstanceState)
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database")
             .allowMainThreadQueries().build()
-        (db as AppDatabase).clearAllTables()
+        db.clearAllTables()
         val csvId = R.raw.skyrim_alchemy;
         Log.d("MAIN", "Loading csv with id $csvId")
 
-        CSVReader().readCSV(applicationContext.resources.openRawResource(csvId), (db as AppDatabase))
+        CSVReader().readCSV(applicationContext.resources.openRawResource(csvId), db)
 
         setContent {
             AlchemyHelperTheme {
@@ -87,29 +93,46 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun HomeScreen(navController: NavController) {
-        Column() {
+        val svgId = R.drawable.chem
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+            .fillMaxWidth()
+            .padding(0.dp, 16.dp, 0.dp, 0.dp)) {
+            Image(painterResource(id = svgId), "simple logo")
+            Text(text = "Alchemy Helper", textAlign = TextAlign.Center, fontSize = 28.sp)
             // Some form of header (maybe a logo) would be nice here
-            Button(onClick = { navController.navigate("IngredientListScreen") }) {
-                Text(text = "List of Ingredients")
+            Row(modifier = Modifier.padding(0.dp, 10.dp)) {
+                Button(onClick = { navController.navigate("IngredientListScreen") }) {
+                    Text(text = "List of Ingredients")
+                }
+                Button(onClick = { navController.navigate("EffectListScreen") }) {
+                    Text(text = "List of Effects")
+                }
             }
-            Button(onClick = { navController.navigate("EffectListScreen") }) {
-                Text(text = "List of Effects")
+            Divider(thickness = 1.dp, modifier = Modifier.padding(2.dp, 0.dp))
+            Text(text = "Coming Soon...", textAlign = TextAlign.Center, fontSize = 20.sp)
+            Button(onClick = { /*TODO*/ }) {
+                Text(text = "Find possible potions from selection")
             }
-            // more buttons for other functionality?
-            // or maybe incorporate some other form of navigation such as button at the bottom
+            Button(onClick = { /*TODO*/ }) {
+                Text(text = "Find possible potions from image")
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(text="© Morgan English")
         }
     }
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun IngredientListWithHeader(navController: NavController) {
-        val ingredients: List<Ingredient> = (db as AppDatabase).IngredientDao().getAll()
+        val ingredients: List<Ingredient> = db.IngredientDao().getAll()
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(16.dp)
         ) {
             stickyHeader {
-                Text(text = "Ingredients")
+                Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
+                    Text(text = "Ingredients", fontSize = 20.sp)
+                }
             }
             itemsIndexed(ingredients) { index, item ->
                 IngredientRow(item, navController)
@@ -120,14 +143,16 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun EffectListWithHeader(navController: NavController) {
-        val effects: List<Effect> = (db as AppDatabase).EffectDao().getAll()
+        val effects: List<Effect> = db.EffectDao().getAll()
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(16.dp)
         ) {
-            stickyHeader {
-                Text(text = "Effects")
+            stickyHeader() {
+                Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
+                    Text(text = "Effects", fontSize = 20.sp)
+                }
             }
             itemsIndexed(effects) { index, item ->
                 EffectRow(item, navController)
@@ -164,7 +189,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun ItemDetailScreen(ingredientString: String) {
         val ingredientWithEffects: IngredientWithEffects =
-            (db as AppDatabase).IngredientWithEffectsDao().findByIngredientName(ingredientString)
+            db.IngredientWithEffectsDao().findByIngredientName(ingredientString)
         Column {
             Text(text = "${ingredientWithEffects.ingredient.name} Screen Here")
             Text(text = "${ingredientWithEffects.effect}")
@@ -174,7 +199,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun EffectDetailScreen(effectString: String) {
         val effectWithIngredients: EffectWithIngredients =
-            (db as AppDatabase).IngredientWithEffectsDao().findByEffectName(effectString)
+            db.IngredientWithEffectsDao().findByEffectName(effectString)
         Column {
             Text(text = "${effectWithIngredients.effect.name} Screen Here")
             Text(text = "${effectWithIngredients.ingredient}")
