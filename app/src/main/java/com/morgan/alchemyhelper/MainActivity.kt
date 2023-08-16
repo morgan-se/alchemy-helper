@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,9 +22,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -420,23 +424,20 @@ class MainActivity : ComponentActivity() {
      * https://medium.com/@dheerubhadoria/capturing-images-from-camera-in-android-with-jetpack-compose-a-step-by-step-guide-64cd7f52e5de
      * and
      * https://developers.google.com/ml-kit/vision/text-recognition/v2/android
-     * todo options: add the ability to load from gallery, or add the ability to take multiple pics (makes sense with big collections)
      */
     @OptIn(ExperimentalCoilApi::class)
     @Composable
     fun GetImage(navController: NavController) {
         val context = applicationContext
+        val imageUris = remember { mutableStateListOf<Uri>() }
         val file = context.createImageFile()
         val uri = FileProvider.getUriForFile(
             Objects.requireNonNull(context),
             "$packageName.provider", file
         )
-        val capturedImageUri = remember {
-            mutableStateOf<Uri>(Uri.EMPTY)
-        }
         val cameraLauncher =
             rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
-                capturedImageUri.value = uri
+                imageUris.add(uri)
             }
         val permissionLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -455,65 +456,90 @@ class MainActivity : ComponentActivity() {
                 .padding(10.dp),
             contentAlignment = Alignment.TopCenter
         ) {
-            if (capturedImageUri.value.path?.isNotEmpty() == true) {
-                Image(
-                    modifier = Modifier
-                        .padding(16.dp, 8.dp)
-                        .fillMaxSize(),
-                    painter = rememberImagePainter(capturedImageUri.value),
-                    contentDescription = null,
-                )
+            if (imageUris.isEmpty()) {
+                Text(text = "No images yet", fontSize = 20.sp, fontStyle = FontStyle.Italic)
             } else {
-                Text(text = "No image yet", fontSize = 20.sp, fontStyle = FontStyle.Italic)
+                LazyVerticalGrid(modifier = Modifier.fillMaxSize(), columns = GridCells.Fixed(count = 2),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    itemsIndexed(imageUris) { index, item ->
+                        if (item.path?.isNotEmpty() == true) {
+                            // this doesn't work without setting a specific height, not gonna ask why
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.5f).height(300.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                    painter = rememberImagePainter(item),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            Column(modifier = Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.End) {
-                if (capturedImageUri.value.path?.isNotEmpty() == true) {
+            Column(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                horizontalAlignment = Alignment.End
+            ) {
+                if (imageUris.isNotEmpty()) {
                     Button(onClick = {
-                        val image: InputImage
                         try {
-                            val recognizer =
-                                TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                            image = InputImage.fromFilePath(context, capturedImageUri.value)
-                            recognizer.process(image).addOnSuccessListener { text ->
-                                val distanceCalc = LevenshteinDistance()
-                                val ingredients: MutableList<Ingredient> = mutableListOf()
-                                for (block in text.textBlocks) {
-                                    for (line in block.lines) {
-                                        val l =
-                                            line.text.replace("[^A-Za-z0-9 ']", "").replace(")", "")
-                                        for (ingredient in db.IngredientDao().getAll()) {
-                                            // value below checks for some level of equality with what is found
-                                            // getting a good number is more of an art than science
-                                            if (distanceCalc.findSimilarity(
-                                                    l,
-                                                    ingredient.name
-                                                ) > 0.7
-                                            ) {
-                                                ingredients.add(ingredient)
+                            Toast.makeText(
+                                context,
+                                "Processing images and calculating possible potions. May take a few seconds...",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            val ingredients: MutableList<Ingredient> = mutableListOf()
+                            for (imageUri in imageUris) {
+                                val recognizer =
+                                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                                val image: InputImage = InputImage.fromFilePath(context, imageUri)
+                                recognizer.process(image).addOnSuccessListener { text ->
+                                    val distanceCalc = LevenshteinDistance()
+                                    for (block in text.textBlocks) {
+                                        for (line in block.lines) {
+                                            val l =
+                                                line.text.replace("[^A-Za-z0-9 ']", "")
+                                                    .replace(")", "")
+                                            for (ingredient in db.IngredientDao().getAll()) {
+                                                // value below checks for some level of equality with what is found
+                                                // getting a good number is more of an art than science
+                                                if (distanceCalc.findSimilarity(
+                                                        l,
+                                                        ingredient.name
+                                                    ) > 0.7
+                                                ) {
+                                                    ingredients.add(ingredient)
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                if (ingredients.isEmpty()) {
+                                    if (ingredients.isEmpty()) {
+                                        Toast.makeText(
+                                            context,
+                                            "Couldn't find any ingredients, give it another go",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        navController.navigate(
+                                            "PossiblePotions/${
+                                                ingredients.distinctBy{it.name}.map { it.ingredientId }
+                                                    .joinToString(",")
+                                            }"
+                                        )
+                                    }
+                                    Log.d("OCR", text.text)
+                                }.addOnFailureListener {
                                     Toast.makeText(
                                         context,
-                                        "Couldn't find any ingredients, give it another go",
+                                        "Whoops something went wrong, give it another go",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                } else {
-                                    navController.navigate(
-                                        "PossiblePotions/${
-                                            ingredients.map { it.ingredientId }.joinToString(",")
-                                        }"
-                                    )
                                 }
-                                Log.d("OCR", text.text)
-                            }.addOnFailureListener {
-                                Toast.makeText(
-                                    context,
-                                    "Whoops something went wrong, give it another go",
-                                    Toast.LENGTH_SHORT
-                                ).show()
                             }
                         } catch (e: IOException) {
                             e.printStackTrace()
@@ -535,7 +561,12 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher.launch(android.Manifest.permission.CAMERA)
                     }
                 }) {
-                    Text(text = "Capture Image From Camera")
+                    if(imageUris.isNotEmpty()) {
+                        Text(text = "Capture Another Image From Camera")
+                    } else {
+                        Text(text = "Capture An Image From Camera")
+
+                    }
                 }
             }
         }
