@@ -3,6 +3,7 @@ package com.morgan.alchemyhelper
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -78,6 +79,8 @@ import java.util.Objects
 class MainActivity : ComponentActivity() {
     private lateinit var db: AppDatabase
     override fun onCreate(savedInstanceState: Bundle?) {
+
+
         Log.d("MAIN", "Starting app...")
         super.onCreate(savedInstanceState)
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "alchemy-database")
@@ -149,26 +152,50 @@ class MainActivity : ComponentActivity() {
                 .padding(0.dp, 16.dp, 0.dp, 0.dp)
         ) {
             Image(painterResource(id = svgId), "simple logo")
-            Text(text = "Alchemy Helper", textAlign = TextAlign.Center, fontSize = 28.sp)
+            Text(
+                text = resources.getString(R.string.app_name),
+                textAlign = TextAlign.Center,
+                fontSize = 28.sp
+            )
             Row(modifier = Modifier.padding(0.dp, 10.dp)) {
                 Button(onClick = { navController.navigate("IngredientListScreen") }) {
-                    Text(text = "List of Ingredients")
+                    Text(text = resources.getString(R.string.list_of_ingredients))
                 }
                 Button(onClick = { navController.navigate("EffectListScreen") }) {
-                    Text(text = "List of Effects")
+                    Text(text = resources.getString(R.string.list_of_effects))
                 }
             }
             Divider(thickness = 1.dp, modifier = Modifier.padding(2.dp, 0.dp, 2.dp, 10.dp))
             Button(onClick = { navController.navigate("FindPotions") }) {
-                Text(text = "Find possible potions from selection")
+                Text(text = resources.getString(R.string.find_possible_potions))
             }
             Button(onClick = { navController.navigate("GetImage") }) {
-                Text(text = "Find possible potions from image")
+                Text(text = resources.getString(R.string.find_possible_potions_image))
+            }
+            if (resources.configuration.locale != Locale("mi")) {
+                Button(onClick = {
+                    val config = Configuration()
+                    config.setLocale(Locale("mi"))
+                    resources.updateConfiguration(config, resources.displayMetrics)
+                    recreate()
+                }) {
+                    Text(text = resources.getString(R.string.change_to_maori))
+                }
+            } else {
+                Button(onClick = {
+                    val config = Configuration()
+                    config.setLocale(Locale("en"))
+                    resources.updateConfiguration(config, resources.displayMetrics)
+                    recreate()
+                }) {
+                    Text(text = resources.getString(R.string.change_to_english))
+                }
             }
             Spacer(modifier = Modifier.weight(1f))
-            Text(text = "© Morgan English")
+            Text(text = resources.getString(R.string.copyright))
         }
     }
+
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
@@ -180,7 +207,7 @@ class MainActivity : ComponentActivity() {
         ) {
             stickyHeader {
                 Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
-                    Text(text = "Ingredients", fontSize = 20.sp)
+                    Text(text = resources.getString(R.string.ingredients), fontSize = 20.sp)
                 }
             }
             itemsIndexed(ingredients) { index, item ->
@@ -200,7 +227,7 @@ class MainActivity : ComponentActivity() {
         ) {
             stickyHeader() {
                 Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
-                    Text(text = "Effects", fontSize = 20.sp)
+                    Text(text = resources.getString(R.string.effects), fontSize = 20.sp)
                 }
             }
             itemsIndexed(effects) { index, item ->
@@ -219,7 +246,6 @@ class MainActivity : ComponentActivity() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = ingredient.toString())
-            // todo: onclick open uesp page with ingredient (should just be added to url)
         }
     }
 
@@ -246,7 +272,7 @@ class MainActivity : ComponentActivity() {
                 fontSize = 20.sp,
                 fontStyle = FontStyle.Italic
             )
-            Text(text = "Effects:")
+            Text(text = resources.getString(R.string.effects) + ":")
             ingredientWithEffects.effect.forEach {
                 Text(text = "- ${it.name}")
             }
@@ -264,7 +290,7 @@ class MainActivity : ComponentActivity() {
                 )
                 startActivity(browserIntent)
             }) {
-                Text(text = "Open in UESP")
+                Text(text = resources.getString(R.string.open_in_uesp))
             }
         }
     }
@@ -279,7 +305,7 @@ class MainActivity : ComponentActivity() {
                 fontSize = 20.sp,
                 fontStyle = FontStyle.Italic
             )
-            Text(text = "Ingredients:")
+            Text(text = resources.getString(R.string.ingredients) + ":")
             effectWithIngredients.ingredient.forEach {
                 Text(text = "- ${it.name}")
             }
@@ -322,7 +348,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 stickyHeader {
                     Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
-                        Text(text = "Ingredients", fontSize = 20.sp)
+                        Text(text = resources.getString(R.string.ingredients), fontSize = 20.sp)
                     }
                 }
                 // possible todo: add search field
@@ -335,7 +361,7 @@ class MainActivity : ComponentActivity() {
                     if (selectedIngredients.isEmpty()) {
                         Toast.makeText(
                             applicationContext,
-                            "Make sure to select some ingredients first!",
+                            resources.getString(R.string.ingredient_selection_missing),
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
@@ -350,7 +376,7 @@ class MainActivity : ComponentActivity() {
                     .padding(0.dp, 0.dp, 8.dp, 6.dp)
                     .align(Alignment.BottomEnd)
             ) {
-                Text(text = "Find potions")
+                Text(text = resources.getString(R.string.find_potions))
             }
         }
     }
@@ -364,7 +390,7 @@ class MainActivity : ComponentActivity() {
         if (potions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "Whoops looks like you cant create a potion with what you've got there...",
+                    text = resources.getString(R.string.cant_create_potion),
                     fontSize = 20.sp, modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(16.dp)
@@ -377,7 +403,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 stickyHeader {
                     Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
-                        Text(text = "Ingredients", fontSize = 20.sp)
+                        Text(text = resources.getString(R.string.ingredients), fontSize = 20.sp)
                     }
                 }
                 itemsIndexed(potions) { index, item ->
@@ -409,7 +435,7 @@ class MainActivity : ComponentActivity() {
             )
             if (selectedPotion.value == potion) {
                 Text(
-                    text = "Possible Ingredients: ",
+                    text = resources.getString(R.string.possible_ingredients) + ":",
                     modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 0.dp)
                 )
                 potion.ingredients.forEach {
@@ -443,10 +469,18 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.RequestPermission()
         ) {
             if (it) {
-                Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    resources.getString(R.string.permission_granted),
+                    Toast.LENGTH_SHORT
+                ).show()
                 cameraLauncher.launch(uri)
             } else {
-                Toast.makeText(context, "Permission Denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    resources.getString(R.string.permission_denied),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
 
@@ -457,17 +491,24 @@ class MainActivity : ComponentActivity() {
             contentAlignment = Alignment.TopCenter
         ) {
             if (imageUris.isEmpty()) {
-                Text(text = "No images yet", fontSize = 20.sp, fontStyle = FontStyle.Italic)
+                Text(
+                    text = resources.getString(R.string.no_images),
+                    fontSize = 20.sp,
+                    fontStyle = FontStyle.Italic
+                )
             } else {
-                LazyVerticalGrid(modifier = Modifier.fillMaxSize(), columns = GridCells.Fixed(count = 2),
+                LazyVerticalGrid(
+                    modifier = Modifier.fillMaxSize(), columns = GridCells.Fixed(count = 2),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
                     itemsIndexed(imageUris) { index, item ->
                         if (item.path?.isNotEmpty() == true) {
                             // this doesn't work without setting a specific height, not gonna ask why
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.5f).height(300.dp),
+                                    .fillMaxWidth(0.5f)
+                                    .height(300.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
@@ -490,7 +531,7 @@ class MainActivity : ComponentActivity() {
                         try {
                             Toast.makeText(
                                 context,
-                                "Processing images and calculating possible potions. May take a few seconds...",
+                                resources.getString(R.string.processing_images),
                                 Toast.LENGTH_SHORT
                             ).show()
                             val ingredients: MutableList<Ingredient> = mutableListOf()
@@ -521,13 +562,14 @@ class MainActivity : ComponentActivity() {
                                     if (ingredients.isEmpty()) {
                                         Toast.makeText(
                                             context,
-                                            "Couldn't find any ingredients, give it another go",
+                                            resources.getString(R.string.cant_find_ingredients),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     } else {
                                         navController.navigate(
                                             "PossiblePotions/${
-                                                ingredients.distinctBy{it.name}.map { it.ingredientId }
+                                                ingredients.distinctBy { it.name }
+                                                    .map { it.ingredientId }
                                                     .joinToString(",")
                                             }"
                                         )
@@ -536,7 +578,7 @@ class MainActivity : ComponentActivity() {
                                 }.addOnFailureListener {
                                     Toast.makeText(
                                         context,
-                                        "Whoops something went wrong, give it another go",
+                                        resources.getString(R.string.generic_error),
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -545,7 +587,7 @@ class MainActivity : ComponentActivity() {
                             e.printStackTrace()
                         }
                     }) {
-                        Text(text = "This looks good")
+                        Text(text = resources.getString(R.string.this_looks_good))
                     }
                 }
                 Button(onClick = {
@@ -561,10 +603,10 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher.launch(android.Manifest.permission.CAMERA)
                     }
                 }) {
-                    if(imageUris.isNotEmpty()) {
-                        Text(text = "Capture Another Image From Camera")
+                    if (imageUris.isNotEmpty()) {
+                        Text(text = resources.getString(R.string.capture_image))
                     } else {
-                        Text(text = "Capture An Image From Camera")
+                        Text(text = resources.getString(R.string.capture_another_image))
 
                     }
                 }
