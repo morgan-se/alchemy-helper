@@ -1,28 +1,39 @@
 package com.morgan.alchemyhelper
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,6 +97,18 @@ class MainActivity : ComponentActivity() {
                         val selectedEffect = backStackEntry.arguments?.getString("selectedEffect")
                         selectedEffect?.let { string: String -> EffectDetailScreen(string) }
                     }
+                    composable("FindPotions") {
+                        IngredientSelection(navController = navController)
+                    }
+                    composable(
+                        "PossiblePotions/{ingredients}",
+                        arguments = listOf(navArgument("ingredients") {
+                            type = NavType.StringType
+                        })
+                    ) { backStackEntry ->
+                        val ingredientIds = backStackEntry.arguments?.getString("ingredients")
+                        ingredientIds?.let { string: String -> PossiblePotions(ingredientIds = string) }
+                    }
                 }
             }
         }
@@ -94,12 +117,13 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun HomeScreen(navController: NavController) {
         val svgId = R.drawable.chem
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-            .fillMaxWidth()
-            .padding(0.dp, 16.dp, 0.dp, 0.dp)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+                .fillMaxWidth()
+                .padding(0.dp, 16.dp, 0.dp, 0.dp)
+        ) {
             Image(painterResource(id = svgId), "simple logo")
             Text(text = "Alchemy Helper", textAlign = TextAlign.Center, fontSize = 28.sp)
-            // Some form of header (maybe a logo) would be nice here
             Row(modifier = Modifier.padding(0.dp, 10.dp)) {
                 Button(onClick = { navController.navigate("IngredientListScreen") }) {
                     Text(text = "List of Ingredients")
@@ -108,16 +132,21 @@ class MainActivity : ComponentActivity() {
                     Text(text = "List of Effects")
                 }
             }
-            Divider(thickness = 1.dp, modifier = Modifier.padding(2.dp, 0.dp))
-            Text(text = "Coming Soon...", textAlign = TextAlign.Center, fontSize = 20.sp)
-            Button(onClick = { /*TODO*/ }) {
+            Divider(thickness = 1.dp, modifier = Modifier.padding(2.dp, 0.dp, 2.dp, 10.dp))
+            Button(onClick = { navController.navigate("FindPotions") }) {
                 Text(text = "Find possible potions from selection")
             }
-            Button(onClick = { /*TODO*/ }) {
+            Button(onClick = {
+                Toast.makeText(
+                    applicationContext,
+                    "Coming soon...",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }) {
                 Text(text = "Find possible potions from image")
             }
             Spacer(modifier = Modifier.weight(1f))
-            Text(text="© Morgan English")
+            Text(text = "© Morgan English")
         }
     }
 
@@ -165,11 +194,12 @@ class MainActivity : ComponentActivity() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(8.dp)
                 .clickable { navController.navigate("IngredientDetailScreen/$ingredient") },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = ingredient.toString())
+            // todo: onclick open uesp page with ingredient (should just be added to url)
         }
     }
 
@@ -178,7 +208,7 @@ class MainActivity : ComponentActivity() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(8.dp)
                 .clickable { navController.navigate("EffectDetailScreen/$effect") },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -190,9 +220,32 @@ class MainActivity : ComponentActivity() {
     fun ItemDetailScreen(ingredientString: String) {
         val ingredientWithEffects: IngredientWithEffects =
             db.IngredientWithEffectsDao().findByIngredientName(ingredientString)
-        Column {
-            Text(text = "${ingredientWithEffects.ingredient.name} Screen Here")
-            Text(text = "${ingredientWithEffects.effect}")
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = ingredientWithEffects.ingredient.name,
+                fontSize = 20.sp,
+                fontStyle = FontStyle.Italic
+            )
+            Text(text = "Effects:")
+            ingredientWithEffects.effect.forEach {
+                Text(text = "- ${it.name}")
+            }
+            Button(onClick = {
+                val browserIntent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(
+                        "https://en.uesp.net/wiki/Skyrim:${
+                            ingredientWithEffects.ingredient.name.replace(
+                                " ",
+                                "_"
+                            )
+                        }"
+                    )
+                )
+                startActivity(browserIntent)
+            }) {
+                Text(text = "Open in UESP")
+            }
         }
     }
 
@@ -200,9 +253,149 @@ class MainActivity : ComponentActivity() {
     fun EffectDetailScreen(effectString: String) {
         val effectWithIngredients: EffectWithIngredients =
             db.IngredientWithEffectsDao().findByEffectName(effectString)
-        Column {
-            Text(text = "${effectWithIngredients.effect.name} Screen Here")
-            Text(text = "${effectWithIngredients.ingredient}")
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = effectWithIngredients.effect.name,
+                fontSize = 20.sp,
+                fontStyle = FontStyle.Italic
+            )
+            Text(text = "Ingredients:")
+            effectWithIngredients.ingredient.forEach {
+                Text(text = "- ${it.name}")
+            }
+        }
+    }
+
+    @Composable
+    fun SelectableIngredientRow(
+        ingredient: Ingredient,
+        selectedIngredients: MutableList<Ingredient>
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = selectedIngredients.contains(ingredient), onCheckedChange = {
+                Log.d("INGREDIENTS", ingredient.toString())
+                if (selectedIngredients.contains(ingredient)) {
+                    selectedIngredients.remove(ingredient)
+                } else {
+                    Log.d("INGREDIENTS", "Adding ingredient...")
+                    selectedIngredients.add(ingredient)
+                }
+            })
+            Text(text = ingredient.toString())
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    fun IngredientSelection(navController: NavController) {
+        val ingredients: List<Ingredient> = db.IngredientDao().getAll()
+        val selectedIngredients = remember { mutableStateListOf<Ingredient>() }
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                stickyHeader {
+                    Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
+                        Text(text = "Ingredients", fontSize = 20.sp)
+                    }
+                }
+                // possible todo: add search field
+                itemsIndexed(ingredients) { index, item ->
+                    SelectableIngredientRow(item, selectedIngredients = selectedIngredients)
+                }
+            }
+            Button(
+                onClick = {
+                    if (selectedIngredients.isEmpty()) {
+                        Toast.makeText(
+                            applicationContext,
+                            "Make sure to select some ingredients first!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        navController.navigate(
+                            "PossiblePotions/${
+                                selectedIngredients.map { it.ingredientId }.joinToString(",")
+                            }"
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .padding(0.dp, 0.dp, 8.dp, 6.dp)
+                    .align(Alignment.BottomEnd)
+            ) {
+                Text(text = "Find potions")
+            }
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    fun PossiblePotions(ingredientIds: String) {
+        Log.d("POTIONS", ingredientIds)
+        val potions: List<Potion> = PotionFinder().findPossiblePotions(db, ingredientIds)
+        val selectedPotion = remember { mutableStateOf<Potion?>(null) }
+        if (potions.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "Whoops looks like you cant create a potion with what you've got there...",
+                    fontSize = 20.sp, modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(16.dp)
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                stickyHeader {
+                    Surface(modifier = Modifier.padding(0.dp, 4.dp, 0.dp, 0.dp)) {
+                        Text(text = "Ingredients", fontSize = 20.sp)
+                    }
+                }
+                itemsIndexed(potions) { index, item ->
+                    PotionRow(item, selectedPotion = selectedPotion)
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun PotionRow(potion: Potion, selectedPotion: MutableState<Potion?>) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .clickable {
+                    if (selectedPotion.value == potion) {
+                        selectedPotion.value = null
+                    } else {
+                        selectedPotion.value = potion
+                    }
+                },
+
+            ) {
+            Text(text = potion.effect.name, fontSize = 18.sp, fontStyle = FontStyle.Italic)
+            Text(
+                text = potion.effect.description,
+                modifier = Modifier.padding(8.dp, 2.dp, 0.dp, 0.dp)
+            )
+            if (selectedPotion.value == potion) {
+                Text(
+                    text = "Possible Ingredients: ",
+                    modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 0.dp)
+                )
+                potion.ingredients.forEach {
+                    Text(text = it.name, modifier = Modifier.padding(4.dp, 2.dp, 0.dp, 0.dp))
+                }
+            }
         }
     }
 }

@@ -14,4 +14,8 @@ class Ingredient(
     override fun toString(): String {
         return name
     }
+
+    fun sameAs(other: Ingredient): Boolean {
+        return name == other.name
+    }
 }

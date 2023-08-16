@@ -11,7 +11,7 @@ interface IngredientDao {
     fun getAll() : List<Ingredient>
 
     @Query("SELECT * FROM ingredient WHERE ingredientId = :id")
-    fun findById(id: Int): Ingredient
+    fun findById(id: Long): Ingredient?
 
     @Query("SELECT * FROM ingredient WHERE name LIKE :name")
     fun findByName(name: String): Ingredient?

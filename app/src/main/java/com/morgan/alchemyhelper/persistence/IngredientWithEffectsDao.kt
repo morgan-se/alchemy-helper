@@ -5,14 +5,12 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-//import androidx.room.Transaction
 
 @Dao
 interface IngredientWithEffectsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(ingredientWithEffects: IngredientAndEffect)
 
-//    @Transaction
     @Query("SELECT * FROM ingredient")
     fun getIngredientWithEffects(): List<IngredientWithEffects>
 
@@ -24,6 +22,9 @@ interface IngredientWithEffectsDao {
 
     @Query("SELECT * FROM effect WHERE name=:name")
     fun findByEffectName(name: String): EffectWithIngredients
+
+    @Query("SELECT * FROM effect WHERE effectId=:id")
+    fun findByEffectId(id: Long): EffectWithIngredients?
 
     @Delete
     fun delete(ingredientWithEffects: IngredientAndEffect)
