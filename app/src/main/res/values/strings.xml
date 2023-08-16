@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">Alchemy Helper</string>
+    <string name="copyright">© Morgan English</string>
+    <string name="list_of_ingredients">List of Ingredients</string>
+    <string name="list_of_effects">List of Effects</string>
+    <string name="find_possible_potions">Find possible potions from selection</string>
+    <string name="find_possible_potions_image">Find possible potions from image</string>
+    <string name="ingredient_selection_missing">Make sure to select some ingredients first!</string>
+    <string name="find_potions">Find potions</string>
+    <string name="cant_create_potion">Whoops looks like you can\'t create a potion with what you\'ve got there…</string>
+    <string name="ingredients">Ingredients</string>
+    <string name="possible_ingredients">Possible Ingredients</string>
+    <string name="effects">Effects</string>
+    <string name="open_in_uesp">Open in UESP</string>
+    <string name="permission_granted">Permission Granted</string>
+    <string name="permission_denied">Permission Denied</string>
+    <string name="no_images">No images yet</string>
+    <string name="processing_images">Processing images and calculating possible potions. May take a few seconds…</string>
+    <string name="cant_find_ingredients">Couldn\'t find any ingredients, give it another go</string>
+    <string name="generic_error">Whoops something went wrong, give it another go</string>
+    <string name="this_looks_good">This looks good</string>
+    <string name="capture_image">Capture An Image From Camera</string>
+    <string name="capture_another_image">Capture Another Image From Camera</string>
+    <string name="change_to_maori">Change to Māori</string>
+    <string name="change_to_english">Change to English</string>
 </resources>

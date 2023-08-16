@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Āwhina Tāngata</string>
+    <string name="copyright">© Morgan English</string>
+    <string name="list_of_ingredients">Rārangi o Ngā Uruwhenua</string>
+    <string name="list_of_effects">Rārangi o Ngā Taenga</string>
+    <string name="find_possible_potions">Rapu rauemi poto i te whakararuraru</string>
+    <string name="find_possible_potions_image">Rapu rauemi poto mai i te whakaahua</string>
+    <string name="ingredient_selection_missing">Whakarite kia tīmata i ētahi o ngā uwha i mua!</string>
+    <string name="find_potions">Rapu i ngā wai</string>
+    <string name="cant_create_potion">Awhina, he pēhea te āhei ki te hanga i tētahi wai me ake nei…</string>
+    <string name="ingredients">Ngā Uruwhenua</string>
+    <string name="possible_ingredients">Ngā Uruwhenua Āhei</string>
+    <string name="effects">Ngā Taenga</string>
+    <string name="open_in_uesp">Whakatuwhera i roto i UESP</string>
+    <string name="permission_granted">Whakaaetia te Whakaae</string>
+    <string name="permission_denied">Whakakore i te Whakaae</string>
+    <string name="no_images">Kāore he whakaahua i tēnei wā</string>
+    <string name="processing_images">E whakapau kaha ana ki te whakararuraru whakaahua me te whakararuraru i ngā wai āhei. Taea e tīmata i ētahi hēkona…</string>
+    <string name="cant_find_ingredients">Kāore i kitea he ngā uwha, tukuna atu he whakamātautau anō</string>
+    <string name="generic_error">Awhina, kua puta he hapa, tukuna atu he whakamātautau anō</string>
+    <string name="this_looks_good">He pai tēnei āhua</string>
+    <string name="capture_image">Tikiake Tētahi Whakaahua Mai i te Kamera</string>
+    <string name="capture_another_image">Tikiake Atu Tētahi Whakaahua Mai i te Kamera</string>
+    <string name="change_to_maori">Whakarerekē ki te Reo Māori</string>
+    <string name="change_to_english">Whakarerekē ki te Reo Pākehā</string>
+</resources>
