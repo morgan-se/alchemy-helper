@@ -420,6 +420,7 @@ class MainActivity : ComponentActivity() {
      * https://medium.com/@dheerubhadoria/capturing-images-from-camera-in-android-with-jetpack-compose-a-step-by-step-guide-64cd7f52e5de
      * and
      * https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+     * todo options: add the ability to load from gallery, or add the ability to take multiple pics (makes sense with big collections)
      */
     @OptIn(ExperimentalCoilApi::class)
     @Composable
@@ -448,75 +449,94 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Column(
+        Box(
             Modifier
                 .fillMaxSize()
                 .padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            contentAlignment = Alignment.TopCenter
         ) {
             if (capturedImageUri.value.path?.isNotEmpty() == true) {
                 Image(
                     modifier = Modifier
-                        .padding(16.dp, 8.dp).size(400.dp),
+                        .padding(16.dp, 8.dp)
+                        .fillMaxSize(),
                     painter = rememberImagePainter(capturedImageUri.value),
                     contentDescription = null,
                 )
+            } else {
+                Text(text = "No image yet", fontSize = 20.sp, fontStyle = FontStyle.Italic)
             }
-            Button(onClick = {
-                val permissionCheckResult =
-                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)
-                if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
-                    cameraLauncher.launch(uri)
-                } else {
-                    // Request permissions
-                    permissionLauncher.launch(android.Manifest.permission.CAMERA)
-                }
-            }) {
-                Text(text = "Capture Image From Camera")
-            }
-            Button(onClick = {
-                val image: InputImage
-                try {
-                    val recognizer =
-                        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                    image = InputImage.fromFilePath(context, capturedImageUri.value)
-                    recognizer.process(image).addOnSuccessListener { text ->
-                        val distanceCalc = LevenshteinDistance()
-                        val ingredients: MutableList<Ingredient> = mutableListOf()
-                        for (block in text.textBlocks) {
-                            for (line in block.lines) {
-                                val l = line.text.replace("[^A-Za-z0-9 ']", "").replace(")", "")
-                                for (ingredient in db.IngredientDao().getAll()) {
-                                    // value below checks for some level of equality with what is found
-                                    // getting a good number is more of an art than science
-                                    if(distanceCalc.findSimilarity(l, ingredient.name) > 0.7) {
-                                        ingredients.add(ingredient)
+            Column(modifier = Modifier.align(Alignment.BottomEnd), horizontalAlignment = Alignment.End) {
+                if (capturedImageUri.value.path?.isNotEmpty() == true) {
+                    Button(onClick = {
+                        val image: InputImage
+                        try {
+                            val recognizer =
+                                TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                            image = InputImage.fromFilePath(context, capturedImageUri.value)
+                            recognizer.process(image).addOnSuccessListener { text ->
+                                val distanceCalc = LevenshteinDistance()
+                                val ingredients: MutableList<Ingredient> = mutableListOf()
+                                for (block in text.textBlocks) {
+                                    for (line in block.lines) {
+                                        val l =
+                                            line.text.replace("[^A-Za-z0-9 ']", "").replace(")", "")
+                                        for (ingredient in db.IngredientDao().getAll()) {
+                                            // value below checks for some level of equality with what is found
+                                            // getting a good number is more of an art than science
+                                            if (distanceCalc.findSimilarity(
+                                                    l,
+                                                    ingredient.name
+                                                ) > 0.7
+                                            ) {
+                                                ingredients.add(ingredient)
+                                            }
+                                        }
                                     }
                                 }
+                                if (ingredients.isEmpty()) {
+                                    Toast.makeText(
+                                        context,
+                                        "Couldn't find any ingredients, give it another go",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    navController.navigate(
+                                        "PossiblePotions/${
+                                            ingredients.map { it.ingredientId }.joinToString(",")
+                                        }"
+                                    )
+                                }
+                                Log.d("OCR", text.text)
+                            }.addOnFailureListener {
+                                Toast.makeText(
+                                    context,
+                                    "Whoops something went wrong, give it another go",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
+                        } catch (e: IOException) {
+                            e.printStackTrace()
                         }
-                        if (ingredients.isEmpty()) {
-                            Toast.makeText(
-                                context, "Couldn't find any ingredients, give it another go", Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            navController.navigate(
-                                "PossiblePotions/${
-                                    ingredients.map { it.ingredientId }.joinToString(",")
-                                }"
-                            )
-                        }
-                        Log.d("OCR", text.text)
-                    }.addOnFailureListener {
-                        Toast.makeText(
-                            context, "Whoops something went wrong, give it another go", Toast.LENGTH_SHORT
-                        ).show()
+                    }) {
+                        Text(text = "This looks good")
                     }
-                } catch (e: IOException) {
-                    e.printStackTrace()
                 }
-            }) {
-                Text(text = "This looks good")
+                Button(onClick = {
+                    val permissionCheckResult =
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.CAMERA
+                        )
+                    if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                        cameraLauncher.launch(uri)
+                    } else {
+                        // Request permissions
+                        permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
+                }) {
+                    Text(text = "Capture Image From Camera")
+                }
             }
         }
 
