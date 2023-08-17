@@ -14,3 +14,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+app/release
+# allow release apk to be stored for easy access
+!app/release/alchemy-helper.apk
